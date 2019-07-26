@@ -73,6 +73,12 @@ class EyeExam:
         lines = scrape_pdf(path_to_pdf, printing = False)
         #First, we extract the identifying infomation
         self.name = lines[0][lines[0].index(" ")+1:]
+        if "." in self.name:
+            self.last_name = self.name.split(".")[0].lower().capitalize()
+            self.first_name = self.name.split(".")[1][0:-1].lower().capitalize()
+        else:
+            self.last_name,self.first_name = self.name.split(", ")
+            self.last_name, self.first_name = self.last_name.lower().capitalize(), self.first_name.lower().capitalize()
         self.id = lines[3].split(" ")[2]
         self.age = int(lines[9].split(" ")[-1])
         #Next, quality control parametes
@@ -108,7 +114,7 @@ class EyeExam:
     def __call__(self):
         return self.acuity_array
     def __repr__(self):
-        return "%s %s eye" %(self.id, self.eye)
+        return "%s's %s eye" %(self.last_name, self.eye)
     def __str__(self):
         string_out = (("Patient ID: %s\n" %self.id)
                       + ("Patient Age: %s\n" %self.age)
@@ -120,8 +126,20 @@ class EyeExam:
     def print_detailed(self):
         for key in self.__dict__:
             print("%s: %s"%(key,self.__dict__[key]))
-        
-        
+
+
+def recursive_scrape_pdfs(path):
+    """
+     Recursively scrape the contents of the path for pdfs
+    \n:rtype: a list of EyeExam class instances
+    """
+    lis = []
+    for file in os.listdir(path):
+        if file[-4:] == ".pdf":
+            lis.append(EyeExam(os.path.join(path,file)))
+        elif os.path.isdir(file):
+            lis.join(recursive_scrape_pdfs(os.path.join(path,file)))
+    return lis
 
 if __name__ == "__main__":
     if len(sys.argv)<2:
@@ -130,10 +148,4 @@ if __name__ == "__main__":
                          +"> python3 pdfscraper.py /path/to/ptsfile")
         exit(0)
     for path in sys.argv[1:]:
-        try:
-            print(EyeExam(path))
-        except IsADirectoryError:
-            print("Scrapting directory content...")
-            for file in os.listdir(path):
-                print(EyeExam(os.path.join(path,file)))
-
+        print(recursive_scrape_pdfs(path))
